@@ -16,6 +16,11 @@ def find_closest_match(question, threshold=0.5):
     closest_match = difflib.get_close_matches(question, knowledge_base.keys(), n=1, cutoff=threshold)
     return closest_match[0] if closest_match else None
 
+@app.route('/handle_question', methods=['POST'])
+def handle_question_endpoint():
+    question = request.form.get('question')  # Assure-toi que 'question' est dans le formulaire
+    return handle_question(question)
+
 @app.route('/ask', methods=['POST'])
 def handle_question(question):
     # Vérifie si la question est dans la base de connaissances
@@ -23,6 +28,8 @@ def handle_question(question):
         return knowledge_base[question]
     else:
         return None  # Pas de réponse trouvée
+    if not question:
+    return "Aucune question fournie", 400  # Retourne une erreur 400 si aucune question
 
 @app.route('/ask', methods=['POST'])
 def ask():
