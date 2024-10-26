@@ -36,8 +36,9 @@ def ask():
     if answer is not None:
         return jsonify({"answer": answer})
     else:
-        # Si aucune réponse trouvée, demande à l'utilisateur
-        return jsonify({"error": "Je ne connais pas la réponse. Quel est-elle ?"}), 404
+        # Si aucune réponse trouvée, demande à l'utilisateur de la fournir
+        return jsonify({"error": "Je ne connais pas la réponse. Quel est-elle ?",
+                        "question": question}), 404
 
 @app.route('/add_answer', methods=['POST'])
 def add_answer():
@@ -52,7 +53,6 @@ def add_answer():
     knowledge_base[question] = answer
     
     return jsonify({"message": "Réponse ajoutée avec succès!"})
-
 
 @app.route('/learn', methods=['POST'])
 def learn():
