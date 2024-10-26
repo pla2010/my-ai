@@ -27,11 +27,16 @@ def ask_question():
     # Sinon, chercher une question similaire
     closest_question = find_closest_match(question)
     if closest_question:
-        return jsonify({"message": f"Je ne connais pas exactement la réponse, mais cela ressemble à '{closest_question}'. La réponse connue est : {knowledge_base[closest_question]}",
-                        "similar": True})
+        return jsonify({
+            "message": f"Je ne connais pas exactement la réponse, mais cela ressemble à '{closest_question}'. La réponse connue est : {knowledge_base[closest_question]}",
+            "similar": True
+        })
 
     # Sinon, apprendre la réponse
-    return jsonify({"message": "Je ne connais pas la réponse, peux-tu me dire ce que c'est ?", "learn": True})
+    return jsonify({
+        "message": "Je ne connais pas la réponse. Peux-tu me dire ce que c'est ?",
+        "learn": True
+    })
 
 @app.route('/learn', methods=['POST'])
 def learn_answer():
@@ -39,14 +44,18 @@ def learn_answer():
     question = data.get('question', '')
     answer = data.get('answer', '')
 
-    # Ajouter à la base de connaissances
-    knowledge_base[question] = answer
+    # Vérifier que la question et la réponse sont fournies
+    if question and answer:
+        # Ajouter à la base de connaissances
+        knowledge_base[question] = answer
 
-    # Sauvegarder dans le fichier
-    with open("knowledge_base.json", "w") as f:
-        json.dump(knowledge_base, f)
+        # Sauvegarder dans le fichier
+        with open("knowledge_base.json", "w") as f:
+            json.dump(knowledge_base, f)
 
-    return jsonify({"message": f"D'accord, j'ai appris que '{question}' signifie : {answer}"})
+        return jsonify({"message": f"D'accord, j'ai appris que '{question}' signifie : {answer}"})
+    else:
+        return jsonify({"error": "Question et réponse sont requises."}), 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
