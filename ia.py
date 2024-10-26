@@ -1,5 +1,8 @@
 import json
 import difflib
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
 
 # Charger la base de connaissances
 try:
@@ -13,27 +16,28 @@ def find_closest_match(question, threshold=0.5):
     closest_match = difflib.get_close_matches(question, knowledge_base.keys(), n=1, cutoff=threshold)
     return closest_match[0] if closest_match else None
 
-def ask_question(question):
+@app.route('/ask', methods=['POST'])
+def ask_question():
+    question = request.json.get('question', '')
+
     # Si la question est déjà connue
     if question in knowledge_base:
-        return knowledge_base[question]
+        return jsonify({"answer": knowledge_base[question]})
 
     # Sinon, chercher une question similaire
     closest_question = find_closest_match(question)
     if closest_question:
-        print(f"Je ne connais pas exactement la réponse, mais cela ressemble à '{closest_question}'. La réponse connue est : {knowledge_base[closest_question]}")
-        response = input("Est-ce que cette réponse est correcte (o/n) ? ")
-
-        # Si la réponse est correcte, on l'associe à la nouvelle question
-        if response.lower() == 'o':
-            knowledge_base[question] = knowledge_base[closest_question]
-            with open("knowledge_base.json", "w") as f:
-                json.dump(knowledge_base, f)
-            return f"J'ai appris que '{question}' signifie aussi : {knowledge_base[question]}"
+        return jsonify({"message": f"Je ne connais pas exactement la réponse, mais cela ressemble à '{closest_question}'. La réponse connue est : {knowledge_base[closest_question]}",
+                        "similar": True})
 
     # Sinon, apprendre la réponse
-    print("Je ne connais pas la réponse, peux-tu me dire ce que c'est ?")
-    answer = input("Réponse : ")
+    return jsonify({"message": "Je ne connais pas la réponse, peux-tu me dire ce que c'est ?", "learn": True})
+
+@app.route('/learn', methods=['POST'])
+def learn_answer():
+    data = request.json
+    question = data.get('question', '')
+    answer = data.get('answer', '')
 
     # Ajouter à la base de connaissances
     knowledge_base[question] = answer
@@ -42,11 +46,7 @@ def ask_question(question):
     with open("knowledge_base.json", "w") as f:
         json.dump(knowledge_base, f)
 
-    return f"D'accord, j'ai appris que {question} signifie : {answer}"
+    return jsonify({"message": f"D'accord, j'ai appris que '{question}' signifie : {answer}"})
 
-# Boucle d'interaction
-while True:
-    question = input("Pose-moi une question ou tape 'exit' pour quitter : ")
-    if question.lower() == "exit":
-        break
-    print(ask_question(question))
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
