@@ -18,28 +18,21 @@ def find_closest_match(question, threshold=0.5):
 
 @app.route('/ask', methods=['POST'])
 def ask():
-    data = request.get_json()  # Récupère les données JSON de la requête
-    if not data or "question" not in data:
-        return jsonify({"error": "Aucune question fournie"}), 400
+    try:
+        # Récupérer la question de la requête JSON
+        data = request.get_json()
+        if not data or 'question' not in data:
+            return jsonify({"error": "Aucune question fournie"}), 400
 
-    question = data["question"]
-    # Traite la question ici et génère une réponse
-    # Par exemple, tu peux faire un appel à ta fonction de l'IA
-    response = handle_question(question)
+        question = data['question']
+        
+        # Vérifier si la question est dans la base de connaissances
+        answer = knowledge_base.get(question, "Désolé, je ne connais pas la réponse.")
 
-    return jsonify({"answer": response})  # Assure-toi de renvoyer une réponse JSON
-    # Chercher une question similaire
-    closest_question = find_closest_match(question)
-    if closest_question:
-        response = {
-            "answer": knowledge_base[closest_question],
-            "similar": True,
-            "closest_question": closest_question
-        }
-        return jsonify(response)
-
-    # Si aucune réponse trouvée, demande la réponse
-    return jsonify({"error": "Je ne connais pas la réponse, peux-tu me dire ce que c'est ?"}), 404
+        return jsonify({"answer": answer})
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/learn', methods=['POST'])
 def learn():
@@ -55,4 +48,4 @@ def learn():
     return jsonify({"error": "Question ou réponse manquante."}), 400
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
