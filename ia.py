@@ -18,16 +18,16 @@ def find_closest_match(question, threshold=0.5):
 
 @app.route('/ask', methods=['POST'])
 def ask():
-    data = request.get_json()
-    question = data.get("question")
-
-    if not question:
+    data = request.get_json()  # Récupère les données JSON de la requête
+    if not data or "question" not in data:
         return jsonify({"error": "Aucune question fournie"}), 400
 
-    # Si la question est déjà connue
-    if question in knowledge_base:
-        return jsonify({"answer": knowledge_base[question]})
+    question = data["question"]
+    # Traite la question ici et génère une réponse
+    # Par exemple, tu peux faire un appel à ta fonction de l'IA
+    response = handle_question(question)
 
+    return jsonify({"answer": response})  # Assure-toi de renvoyer une réponse JSON
     # Chercher une question similaire
     closest_question = find_closest_match(question)
     if closest_question:
