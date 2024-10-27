@@ -58,7 +58,7 @@ def submit_answer():
 def admin():
     if request.method == "POST":
         password = request.form.get("password")
-        if password == "admin_password":  # Change le mot de passe ici
+        if password == "123456":  # Change le mot de passe ici
             session["admin_logged_in"] = True
             return redirect(url_for("admin_panel"))
         return "Mot de passe incorrect", 403
