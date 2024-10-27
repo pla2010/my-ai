@@ -79,7 +79,7 @@ def admin_dashboard():
         return redirect(url_for('admin'))
 
     data = load_questions()
-     return jsonify(data)  # Renvoyer en JSON pour la requête GET
+    return jsonify(data)  # Renvoyer en JSON pour la requête GET
 
 # Route pour supprimer une question-réponse depuis le tableau de bord d'administration
 @app.route('/delete_question', methods=['POST'])
