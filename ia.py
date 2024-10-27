@@ -62,13 +62,13 @@ def learn():
 # Page d'administration protégée par mot de passe
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    if request.method == 'POST':
-        password = request.form.get('password')
-        if password == "votre_mot_de_passe_admin":  # Change le mot de passe
-            session['admin'] = True
-            return redirect(url_for('admin_dashboard'))
-        else:
-            return "Mot de passe incorrect", 403
+  #  if request.method == 'POST':
+      #  password = request.form.get('password')
+    #    if password == "votre_mot_de_passe_admin":  # Change le mot de passe
+  #          session['admin'] = True
+  #          return redirect(url_for('admin_dashboard'))
+  #      else:
+    #        return "Mot de passe incorrect", 403
     return render_template('admin_login.html')
 
 # Tableau de bord d'administration
