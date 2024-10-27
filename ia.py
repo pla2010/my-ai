@@ -4,7 +4,7 @@ from difflib import get_close_matches
 
 app = Flask(__name__)
 app.secret_key = "votre_cle_secrete_pour_session"  # Change cette clé pour plus de sécurité
-DATA_FILE = 'questions.json'
+DATA_FILE = 'data.json'
 
 # Charger les questions-réponses depuis le fichier JSON
 def load_questions():
