@@ -1,95 +1,108 @@
-from flask import Flask, request, jsonify, render_template, redirect, url_for, session
+from flask import Flask, request, jsonify, redirect, url_for, session, render_template
 import json
-import os
-import difflib
+from difflib import get_close_matches
 
 app = Flask(__name__)
-app.secret_key = "secret_key_admin_access"  # Change la clé secrète
+app.secret_key = "votre_cle_secrete_pour_session"  # Change cette clé pour plus de sécurité
+DATA_FILE = 'questions.json'
 
-DATA_FILE = "data.json"
+# Charger les questions-réponses depuis le fichier JSON
+def load_questions():
+    try:
+        with open(DATA_FILE, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
 
-# Initialiser le fichier JSON s'il n'existe pas
-if not os.path.exists(DATA_FILE):
-    with open(DATA_FILE, 'w') as f:
-        json.dump({}, f)
-def find_similar_question(question, data):
-    # Liste des questions existantes
-    questions = list(data.keys())
-    # Cherche les questions proches (seuil de similarité 0.8)
-    similar = get_close_matches(question, questions, n=1, cutoff=0.8)
-    return similar[0] if similar else None
-    
-def load_data():
-    with open(DATA_FILE, 'r') as f:
-        return json.load(f)
-
-def save_data(data):
+# Sauvegarder les questions-réponses dans le fichier JSON
+def save_questions(data):
     with open(DATA_FILE, 'w') as f:
         json.dump(data, f, indent=4)
 
-@app.route("/")
-def index():
-    return render_template("index.html")
+# Cherche une question similaire dans les données existantes
+def find_similar_question(question, data):
+    questions = list(data.keys())
+    similar = get_close_matches(question, questions, n=1, cutoff=0.8)
+    return similar[0] if similar else None
 
-@app.route("/handle_question", methods=["POST"])
+# Route principale pour recevoir les questions du client
+@app.route('/handle_question', methods=['POST'])
 def handle_question():
-    data = load_data()
-    question = request.json.get("question").strip().lower()
-    
-    # Vérifier si la question exacte existe
+    data = load_questions()
+    question = request.json.get('question')
+    if not question:
+        return jsonify({'response': 'Question non valide.'}), 400
+
+    # Vérifie si la question est déjà connue
     if question in data:
-        response = data[question]
-        return jsonify({"response": response, "status": "known"})
+        return jsonify({'response': data[question], 'is_known': True})
+    else:
+        # Cherche une question similaire
+        similar_question = find_similar_question(question, data)
+        if similar_question:
+            return jsonify({'response': data[similar_question], 'is_known': False, 'similar_question': similar_question})
+        else:
+            return jsonify({'response': 'réponse inconnue', 'is_known': False})
+
+# Route pour apprendre une nouvelle réponse ou mettre à jour une question existante
+@app.route('/learn', methods=['POST'])
+def learn():
+    data = load_questions()
+    question = request.json.get('question')
+    response = request.json.get('response')
     
-    # Sinon, vérifier une question proche
-    for stored_question in data.keys():
-        if stored_question in question or question in stored_question:
-            response = data[stored_question]
-            return jsonify({"response": response, "status": "similar", "suggested_question": stored_question})
+    if not question or not response:
+        return jsonify({'status': 'Erreur: question ou réponse manquante.'}), 400
 
-    # Si pas de réponse connue
-    return jsonify({"response": "unknown"})
+    # Sauvegarde la réponse fournie pour la question
+    data[question] = response
+    save_questions(data)
+    return jsonify({'status': 'Apprentissage réussi!'})
 
-@app.route("/submit_answer", methods=["POST"])
-def submit_answer():
-    data = load_data()
-    question = request.json.get("question").strip().lower()
-    answer = request.json.get("answer").strip()
-
-    # Ajouter ou mettre à jour la réponse
-    data[question] = answer
-    save_data(data)
-    return jsonify({"status": "success"})
-
-@app.route("/admin", methods=["GET", "POST"])
+# Page d'administration protégée par mot de passe
+@app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    if request.method == "POST":
-        password = request.form.get("password")
-        if password == "123456":  # Change le mot de passe ici
-            session["admin_logged_in"] = True
-            return redirect(url_for("admin_panel"))
-        return "Mot de passe incorrect", 403
-    return render_template("admin.html")
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == "votre_mot_de_passe_admin":  # Change le mot de passe
+            session['admin'] = True
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return "Mot de passe incorrect", 403
+    return render_template('admin_login.html')
 
-@app.route("/admin/panel")
-def admin_panel():
-    if not session.get("admin_logged_in"):
-        return redirect(url_for("admin"))
-    data = load_data()
-    return render_template("admin_panel.html", data=data)
+# Tableau de bord d'administration
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    if not session.get('admin'):
+        return redirect(url_for('admin'))
 
-@app.route("/admin/delete_question", methods=["POST"])
+    data = load_questions()
+    return render_template('admin_dashboard.html', questions=data)
+
+# Route pour supprimer une question-réponse depuis le tableau de bord d'administration
+@app.route('/delete_question', methods=['POST'])
 def delete_question():
-    if not session.get("admin_logged_in"):
-        return jsonify({"status": "unauthorized"}), 403
+    if not session.get('admin'):
+        return jsonify({'status': 'Accès refusé'}), 403
 
-    question = request.json.get("question").strip().lower()
-    data = load_data()
+    question = request.json.get('question')
+    if not question:
+        return jsonify({'status': 'Question manquante'}), 400
+
+    data = load_questions()
     if question in data:
         del data[question]
-        save_data(data)
-        return jsonify({"status": "deleted"})
-    return jsonify({"status": "not_found"}), 404
+        save_questions(data)
+        return jsonify({'status': 'Question supprimée'})
+    else:
+        return jsonify({'status': 'Question non trouvée'})
 
-if __name__ == "__main__":
+# Déconnexion de l'administrateur
+@app.route('/logout')
+def logout():
+    session.pop('admin', None)
+    return redirect(url_for('admin'))
+
+if __name__ == '__main__':
     app.run(debug=True)
