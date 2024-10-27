@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, redirect, url_for, render_template
 import json
 from difflib import get_close_matches
+import os
 
 app = Flask(__name__)
 app.secret_key = "votre_cle_secrete_pour_session"  # Change cette clé pour plus de sécurité
@@ -81,4 +82,5 @@ def delete_question():
         return jsonify({'status': 'Question non trouvée'})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))  # Définit le port
+    app.run(host='0.0.0.0', port=port)  # Écoute sur 0.0.0.0
