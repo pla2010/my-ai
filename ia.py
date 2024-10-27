@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 import json
 import os
+import difflib
 
 app = Flask(__name__)
 app.secret_key = "secret_key_admin_access"  # Change la clé secrète
@@ -11,7 +12,13 @@ DATA_FILE = "data.json"
 if not os.path.exists(DATA_FILE):
     with open(DATA_FILE, 'w') as f:
         json.dump({}, f)
-
+def find_similar_question(question, data):
+    # Liste des questions existantes
+    questions = list(data.keys())
+    # Cherche les questions proches (seuil de similarité 0.8)
+    similar = get_close_matches(question, questions, n=1, cutoff=0.8)
+    return similar[0] if similar else None
+    
 def load_data():
     with open(DATA_FILE, 'r') as f:
         return json.load(f)
