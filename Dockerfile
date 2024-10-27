@@ -4,6 +4,9 @@ FROM python:3.11
 # Définir le répertoire de travail
 WORKDIR /app
 
+# Installer Pip
+RUN pip install --upgrade pip
+
 # Copier le fichier de dépendances dans l'image
 COPY requirements.txt .
 
