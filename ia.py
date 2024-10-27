@@ -3,8 +3,8 @@ import json
 from difflib import get_close_matches
 import os
 
-app = Flask(__name__)
-app.secret_key = "votre_cle_secrete_pour_session"  # Change cette clé pour plus de sécurité
+ia = Flask(__name__)
+ia.secret_key = "votre_cle_secrete_pour_session"  # Change cette clé pour plus de sécurité
 DATA_FILE = 'data.json'
 
 # Charger les questions-réponses depuis le fichier JSON
@@ -83,4 +83,4 @@ def delete_question():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))  # Définit le port
-    app.run(host='0.0.0.0', port=port)  # Écoute sur 0.0.0.0
+    ia.run(host='0.0.0.0', port=port)  # Écoute sur 0.0.0.0
