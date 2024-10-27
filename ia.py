@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, redirect, url_for, session, render_template
+from flask import Flask, request, jsonify, redirect, url_for, render_template
 import json
 from difflib import get_close_matches
 
@@ -59,34 +59,15 @@ def learn():
     save_questions(data)
     return jsonify({'status': 'Apprentissage réussi!'})
 
-# Page d'administration protégée par mot de passe
-@app.route('/admin', methods=['GET', 'POST'])
-def admin():
-  #  if request.method == 'POST':
-      #  password = request.form.get('password')
-    #    if password == "votre_mot_de_passe_admin":  # Change le mot de passe
-  #          session['admin'] = True
-  #          return redirect(url_for('admin_dashboard'))
-  #      else:
-    #        return "Mot de passe incorrect", 403
-    session['admin'] = True
-    return redirect(url_for('admin_dashboard'))
-
-# Tableau de bord d'administration
+# Tableau de bord d'administration sans authentification
 @app.route('/admin_dashboard')
 def admin_dashboard():
-    if not session.get('admin'):
-        return redirect(url_for('admin'))
-
     data = load_questions()
     return jsonify(data)  # Renvoyer en JSON pour la requête GET
 
 # Route pour supprimer une question-réponse depuis le tableau de bord d'administration
 @app.route('/delete_question', methods=['POST'])
 def delete_question():
-    if not session.get('admin'):
-        return jsonify({'status': 'Accès refusé'}), 403
-
     question = request.json.get('question')
     if not question:
         return jsonify({'status': 'Question manquante'}), 400
@@ -98,12 +79,6 @@ def delete_question():
         return jsonify({'status': 'Question supprimée'})
     else:
         return jsonify({'status': 'Question non trouvée'})
-
-# Déconnexion de l'administrateur
-@app.route('/logout')
-def logout():
-    session.pop('admin', None)
-    return redirect(url_for('admin'))
 
 if __name__ == '__main__':
     app.run(debug=True)
