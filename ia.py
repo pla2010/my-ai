@@ -27,7 +27,7 @@ def find_similar_question(question, data):
     return similar[0] if similar else None
 
 # Route principale pour recevoir les questions du client
-@app.route('/handle_question', methods=['POST'])
+@ia.route('/handle_question', methods=['POST'])
 def handle_question():
     data = load_questions()
     question = request.json.get('question')
@@ -46,7 +46,7 @@ def handle_question():
             return jsonify({'response': 'réponse inconnue', 'is_known': False})
 
 # Route pour apprendre une nouvelle réponse ou mettre à jour une question existante
-@app.route('/learn', methods=['POST'])
+@ia.route('/learn', methods=['POST'])
 def learn():
     data = load_questions()
     question = request.json.get('question')
@@ -61,13 +61,13 @@ def learn():
     return jsonify({'status': 'Apprentissage réussi!'})
 
 # Tableau de bord d'administration sans authentification
-@app.route('/admin_dashboard')
+@ia.route('/admin_dashboard')
 def admin_dashboard():
     data = load_questions()
     return jsonify(data)  # Renvoyer en JSON pour la requête GET
 
 # Route pour supprimer une question-réponse depuis le tableau de bord d'administration
-@app.route('/delete_question', methods=['POST'])
+@ia.route('/delete_question', methods=['POST'])
 def delete_question():
     question = request.json.get('question')
     if not question:
