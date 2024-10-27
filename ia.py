@@ -1,78 +1,88 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, redirect, url_for, session
 import json
-import difflib
+import os
 
 app = Flask(__name__)
+app.secret_key = "secret_key_admin_access"  # Change la clé secrète
 
-# Charger la base de connaissances
-try:
-    with open("knowledge_base.json", "r") as f:
-        knowledge_base = json.load(f)
-except FileNotFoundError:
-    knowledge_base = {}
+DATA_FILE = "data.json"
 
-def find_closest_match(question, threshold=0.5):
-    """Trouve une question similaire dans la base de connaissances."""
-    closest_match = difflib.get_close_matches(question, knowledge_base.keys(), n=1, cutoff=threshold)
-    return closest_match[0] if closest_match else None
+# Initialiser le fichier JSON s'il n'existe pas
+if not os.path.exists(DATA_FILE):
+    with open(DATA_FILE, 'w') as f:
+        json.dump({}, f)
 
-@app.route('/handle_question', methods=['POST'])
-def handle_question_endpoint():
-    question = request.form.get('question')  # Assure-toi que 'question' est dans le formulaire
-    return handle_question(question)
+def load_data():
+    with open(DATA_FILE, 'r') as f:
+        return json.load(f)
 
-@app.route('/ask', methods=['POST'])
-def handle_question(question):
-    # Vérifie si la question est dans la base de connaissances
-    if question in knowledge_base:
-        return knowledge_base[question]
-    else:
-        return None  # Pas de réponse trouvée
-    if not question:
-    return "Aucune question fournie", 400  # Retourne une erreur 400 si aucune question
+def save_data(data):
+    with open(DATA_FILE, 'w') as f:
+        json.dump(data, f, indent=4)
 
-@app.route('/ask', methods=['POST'])
-def ask():
-    data = request.get_json()
-    if not data or 'question' not in data:
-        return jsonify({"error": "Aucune question fournie"}), 400
+@app.route("/")
+def index():
+    return render_template("index.html")
 
-    question = data['question']
-    answer = handle_question(question)
-
-    if answer is not None:
-        return jsonify({"answer": answer})
-    else:
-        # Si aucune réponse trouvée, demande à l'utilisateur de la fournir
-        return jsonify({"error": "Je ne connais pas la réponse. Quel est-elle ?",
-                        "question": question}), 404
-
-@app.route('/add_answer', methods=['POST'])
-def add_answer():
-    data = request.get_json()
-    if not data or 'question' not in data or 'answer' not in data:
-        return jsonify({"error": "Question ou réponse non fournie"}), 400
-
-    question = data['question']
-    answer = data['answer']
+@app.route("/handle_question", methods=["POST"])
+def handle_question():
+    data = load_data()
+    question = request.json.get("question").strip().lower()
     
-    # Ajoute la question et la réponse à la base de connaissances
-    knowledge_base[question] = answer
+    # Vérifier si la question exacte existe
+    if question in data:
+        response = data[question]
+        return jsonify({"response": response, "status": "known"})
     
-    return jsonify({"message": "Réponse ajoutée avec succès!"})
+    # Sinon, vérifier une question proche
+    for stored_question in data.keys():
+        if stored_question in question or question in stored_question:
+            response = data[stored_question]
+            return jsonify({"response": response, "status": "similar", "suggested_question": stored_question})
 
-@app.route('/learn', methods=['POST'])
-def learn():
-    data = request.get_json()
-    question = data.get("question")
-    answer = data.get("answer")
+    # Si pas de réponse connue
+    return jsonify({"response": "unknown"})
 
-    if question and answer:
-        knowledge_base[question] = answer
-        with open("knowledge_base.json", "w") as f:
-            json.dump(knowledge_base, f)
-        return jsonify({"message": "J'ai appris la réponse !"}), 200
-    return jsonify({"error": "Question ou réponse manquante."}), 400
+@app.route("/submit_answer", methods=["POST"])
+def submit_answer():
+    data = load_data()
+    question = request.json.get("question").strip().lower()
+    answer = request.json.get("answer").strip()
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Ajouter ou mettre à jour la réponse
+    data[question] = answer
+    save_data(data)
+    return jsonify({"status": "success"})
+
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+    if request.method == "POST":
+        password = request.form.get("password")
+        if password == "admin_password":  # Change le mot de passe ici
+            session["admin_logged_in"] = True
+            return redirect(url_for("admin_panel"))
+        return "Mot de passe incorrect", 403
+    return render_template("admin.html")
+
+@app.route("/admin/panel")
+def admin_panel():
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("admin"))
+    data = load_data()
+    return render_template("admin_panel.html", data=data)
+
+@app.route("/admin/delete_question", methods=["POST"])
+def delete_question():
+    if not session.get("admin_logged_in"):
+        return jsonify({"status": "unauthorized"}), 403
+
+    question = request.json.get("question").strip().lower()
+    data = load_data()
+    if question in data:
+        del data[question]
+        save_data(data)
+        return jsonify({"status": "deleted"})
+    return jsonify({"status": "not_found"}), 404
+
+if __name__ == "__main__":
+    app.run(debug=True)
