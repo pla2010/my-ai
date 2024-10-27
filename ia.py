@@ -82,5 +82,5 @@ def delete_question():
         return jsonify({'status': 'Question non trouvée'})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Définit le port
+    port = int(os.environ.get('PORT', 8080))  # Définit le port
     ia.run(host='0.0.0.0', port=port)  # Écoute sur 0.0.0.0
