@@ -70,7 +70,7 @@ def admin():
   #      else:
     #        return "Mot de passe incorrect", 403
     session['admin'] = True
-    return render_template('admin_login.html')
+    return redirect(url_for('admin_dashboard'))
 
 # Tableau de bord d'administration
 @app.route('/admin_dashboard')
