@@ -9,10 +9,7 @@ COPY ia.py ./
 
 # Met à jour pip et installe les dépendances
 RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir flask
-RUN pip install --no-cache-dir requests
-RUN pip install --no-cache-dir numpy
+RUN cat requirements.txt && pip install --no-cache-dir -r requirements.txt
 
 RUN apt-get update && apt-get install -y \
     build-essential \
