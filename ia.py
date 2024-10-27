@@ -69,6 +69,7 @@ def admin():
   #          return redirect(url_for('admin_dashboard'))
   #      else:
     #        return "Mot de passe incorrect", 403
+    session['admin'] = True
     return render_template('admin_login.html')
 
 # Tableau de bord d'administration
